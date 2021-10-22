@@ -1,0 +1,62 @@
+# Editor build failure reporter
+# ========================================================
+#
+# [Required secrets]
+#   GH_WORKFLOW_TOKEN:  Github parsonal access token to dispatch workflow
+name: "Build Editor Failed 🚨"
+
+env:
+  # ================ Repository settings ================
+  ISSUE_NUMBER: 19
+
+on:
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: "The image tag that failed to build"
+        required: true
+        default: "2017.4.30f1-webgl-1.0.0"
+
+jobs:
+  comment:
+    name: Comment for the image tag '${{ github.event.inputs.imageTag }}'
+    runs-on: ubuntu-latest
+    outputs:
+      already-commented: ${{ steps.fc.outputs.comment-id != '' }}
+    steps:
+      - name: Find Comment
+        uses: peter-evans/find-comment@v1
+        id: fc
+        with:
+          issue-number: ${{ env.ISSUE_NUMBER }}
+          body-includes: ${{ github.event.inputs.imageTag }}
+
+      - name: Create comment
+        if: steps.fc.outputs.comment-id == ''
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          issue-number: ${{ env.ISSUE_NUMBER }}
+          token: ${{ secrets.GH_WORKFLOW_TOKEN }}
+          body: |
+            The build '${{ github.event.inputs.imageTag }}' failed.
+            If it fails again, it will be added to the ignore list.
+
+  ignore:
+    name: Ignore the image tag '${{ github.event.inputs.imageTag }}' for workflow
+    needs: comment
+    if: needs.comment.outputs.already-commented == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: main
+
+      - run: |
+          [ -n "$(cat .env | grep ${{ github.event.inputs.imageTag }} )" ] && exit 0
+          sed -i -e "s/<<AUTO_IGNORED_IMAGE_TAGS>>/&\\n${{ github.event.inputs.imageTag }}/" .env
+
+      - uses: EndBug/add-and-commit@v7
+        with:
+          default_author: github-actions
+          message: Ignore ${{ github.event.inputs.imageTag }}
+          pull: --rebase --autostash
