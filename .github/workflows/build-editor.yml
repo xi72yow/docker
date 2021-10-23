@@ -15,16 +15,6 @@
 #   GH_WORKFLOW_TOKEN:  Github parsonal access token to dispatch workflow
 name: "Build Editor 🛠️"
 
-env:
-  # ================= Registry settings =================
-  DOCKER_REGISTRY: docker.io    # Docker Hub
-# DOCKER_REGISTRY: ghcr.io      # GitHub Container Registry
-# DOCKER_REGISTRY: gcr.io       # Google Container Registry
-  # ================ Repository settings ================
-  BASE_IMAGE_REPOSITORY: mobsakai/unity3d_base  # Base image name
-  HUB_IMAGE_REPOSITORY: mobsakai/unity3d_hub    # Hub image name
-  EDITOR_IMAGE_REPOSITORY: mobsakai/unity3d     # Editor image name
-
 on:
   workflow_dispatch:
     inputs:
@@ -59,6 +49,11 @@ jobs:
         version: ${{ fromJson(github.event.inputs.versions) }}
         module: ${{ fromJson(github.event.inputs.modules) }}
     steps:
+      ###########################
+      #        Setup env        #
+      ###########################
+      - uses: actions/checkout@v2
+      - run: cat .env | sed 's/=\" *$/<<EOD/g' | sed 's/^\"/EOD/g' | grep '^[^# ]' >> $GITHUB_ENV
 
       ###########################
       #   Check latest release  #
