@@ -102,30 +102,30 @@ For details, see https://game.ci/docs/github/getting-started
 
 ## :hammer: How to build images
 
-### 1. :pencil2: Setup build configurations in workflows
+### 1. :pencil2: Setup build configurations (.env)
 
-- `build-all.yml`
-- `build-editor.yml`
-- `test.yml`
+See [.env](https://github.com/mob-sakai/docker/blob/main/.env)
 
-```yml
-env:
-  # ================= Docker settings =================
-  DOCKER_REGISTRY: docker.io    # Docker Hub
-# DOCKER_REGISTRY: ghcr.io      # GitHub Container Registry
-# DOCKER_REGISTRY: gcr.io       # Google Container Registry
-  # ================= Image settings =================
-  BASE_IMAGE_NAME: unity3d_base # Base image name
-  HUB_IMAGE_NAME: unity3d_hub   # Hub image name
-  EDITOR_IMAGE_NAME: unity3d    # Editor image name
-  # ================= Build settings =================
-  UBUNTU_IMAGE: ubuntu:18.04    # Ubuntu image ID
-  MINIMUM_UNITY_VERSION: 2018.3 # Minimum Unity version to build
-  INCLUDE_BETA_VERSIONS: true   # Include alpha/beta versions?
-  EXCLUDE_IMAGE_TAGS: |         # Excluded image tags (Regular expressions)
-    2018.*-linux-il2cpp
-    2019.1.*-linux-il2cpp
-    2019.2.*-linux-il2cpp
+```sh
+# ================= Registry settings =================
+DOCKER_REGISTRY=docker.io
+# DOCKER_REGISTRY=ghcr.io
+# DOCKER_REGISTRY=gcr.io
+# ================ Repository settings ================
+BASE_IMAGE_REPOSITORY=mobsakai/unity3d_base
+HUB_IMAGE_REPOSITORY=mobsakai/unity3d_hub
+EDITOR_IMAGE_REPOSITORY=mobsakai/unity3d
+# =================== Build settings ==================
+UBUNTU_IMAGE=ubuntu:18.04
+MINIMUM_UNITY_VERSION=2018.3
+INCLUDE_BETA_VERSIONS=true
+# Excluded image tags (Regular expressions)
+EXCLUDE_IMAGE_TAGS="
+2018.*-linux-il2cpp
+2019.1.*-linux-il2cpp
+2019.2.*-linux-il2cpp
+<<AUTO_IGNORED_IMAGE_TAGS>>
+"
 ```
 
 <br><br>
@@ -146,11 +146,11 @@ env:
 
 All workflows will be run automatically.
 
-| Workflow       | Description                                                  | Trigger                                                 |
-| -------------- | ------------------------------------------------------------ | ------------------------------------------------------- |
-| `Release`      | Release new tag.                                             | - Pushed commits (include feat or fix) on `main` branch |
-| `Build All`    | Build base/hub images and dispatch `Build Editor` workflows. | - Released a new version<br>- Scheduled (daily)         |
-| `Build Editor` | Build editor images with a specific Unity module             | - Dispatched from `Build All`                           |
+| Workflow       | Description                                                  | Trigger                                                                         |
+| -------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `Release`      | Release new tag.                                             | - Pushed commits (include feat or fix) on `main` branch                         |
+| `Build All`    | Build base/hub images and dispatch `Build Editor` workflows. | - Released a new version<br>- Scheduled (daily)<br>- New Unity version released |
+| `Build Editor` | Build editor images with a specific Unity module             | - Dispatched from `Build All`                                                   |
 
 <br><br>
 
