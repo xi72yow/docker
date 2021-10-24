@@ -229,6 +229,7 @@ jobs:
           projectPath: reference-project-test
           targetPlatform: ${{ matrix.platform }}
           allowDirtyBuild: true
+          customParameters: -nographics
 
       ###########################
       #       Build (GZip)      #
@@ -247,6 +248,7 @@ jobs:
           projectPath: reference-project-test
           targetPlatform: ${{ matrix.platform }}
           allowDirtyBuild: true
+          customParameters: -nographics
 
       ###########################
       #       Build (Brotli)      #
@@ -265,6 +267,7 @@ jobs:
           projectPath: reference-project-test
           targetPlatform: ${{ matrix.platform }}
           allowDirtyBuild: true
+          customParameters: -nographics
 
       ###########################
       #           Test          #
