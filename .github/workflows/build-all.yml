@@ -197,6 +197,12 @@ jobs:
           - webgl
     steps:
       ###########################
+      #        Setup env        #
+      ###########################
+      - uses: actions/checkout@v2
+      - run: cat .env | sed 's/=\" *$/<<EOD/g' | sed 's/^\"/EOD/g' | grep '^[^# ]' >> $GITHUB_ENV
+
+      ###########################
       #          Setup          #
       ###########################
       - uses: docker/login-action@v1
