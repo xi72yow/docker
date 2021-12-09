@@ -31,6 +31,7 @@ FROM $baseImage
 # Always put "Editor" and "modules.json" directly in $UNITY_PATH
 ARG version
 ARG module
+ARG changeSet
 COPY --from=builder /opt/unity/editors/$version/ "$UNITY_PATH/"
 
 # Add a file containing the version for this build
@@ -242,3 +243,16 @@ RUN echo "$version-$module" | grep -q -v '^2021.*linux-il2cpp' \
     lld \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
+
+#=======================================================================================
+# [2021.2+] linux-server support
+#=======================================================================================
+RUN echo "$version-$module" | grep -q '\(2018\|2019\|2020\|2021.1\|2021.2.0\|2021.2.1\|2021.2.2\|2021.2.3\)' \
+  && exit 0 \
+  || : \
+  && ( \
+    wget --no-verbose -O /tmp/linux-server.tar.xz "https://download.unity3d.com/download_unity/$changeSet/LinuxEditorTargetInstaller/UnitySetup-Linux-Server-Support-for-Editor-$version.tar.xz" \
+    || wget --no-verbose -O /tmp/linux-server.tar.xz        "https://beta.unity3d.com/download/$changeSet/LinuxEditorTargetInstaller/UnitySetup-Linux-Server-Support-for-Editor-$version.tar.xz" \
+  ) \
+  && tar Jxfv /tmp/linux-server.tar.xz -C "$UNITY_PATH" \
+  && rm /tmp/linux-server.tar.xz
