@@ -265,3 +265,15 @@ RUN echo "$version-$module" | grep -q -v '^\(2021.2\|2022.1\).*mac-mono' \
   || : \
   && cd /opt/unity/Editor/Data/PlaybackEngines/MacStandaloneSupport/Variations \
   && ls | grep arm64 | sed 'p;s/arm64/ARM64/' | xargs -n2 mv
+
+#=======================================================================================
+# [2019.4] mono-devel
+#=======================================================================================
+RUN echo "$version" | grep -q -v '^2019.4' \
+  && exit 0 \
+  || : \
+  && apt-get -q update \
+  && apt-get -q install -y --no-install-recommends --allow-downgrades \
+    mono-devel \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
