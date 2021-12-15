@@ -219,8 +219,9 @@ jobs:
           echo '' > .existtags
           skopeo list-tags docker://${{ env.DOCKER_REGISTRY }}/${{ env.EDITOR_IMAGE_REPOSITORY }} | jq -r '.Tags[]' | grep -v '^ubuntu' | grep -e "-${{ matrix.module }}-${{ env.repoVersion }}$" | tee .existtags || :
 
-          echo "======== Excluded image tags ========"
-          echo -n "${{ env.EXCLUDE_IMAGE_TAGS }}" | grep '.' | tee .excludedTags
+          echo "======== Include/Excluded image tags ========"
+          echo -n "${{ env.INCLUDE_IMAGE_TAGS }}" | grep '.' | tee .includeTags
+          echo -n "${{ env.EXCLUDE_IMAGE_TAGS }}" | grep '.' | tee .excludeTags
 
           echo "======== Available Unity versions ========"
           [ "${{ env.INCLUDE_BETA_VERSIONS }}" = 'true' ] && OPT='--all' || OPT=''
@@ -229,7 +230,8 @@ jobs:
           echo "======== Unity versions to build ========"
           UNITY_VERSIONS_TO_BUILD=`for version in $(cat .unityVersions) ; do \
               [ -z "$(grep -x ${version}-${{ matrix.module }}-${{ env.repoVersion }} .existtags)" ] \
-              && [ -z "$(echo ${version}-${{ matrix.module }}-${{ env.repoVersion }} | grep -f .excludedTags)" ] \
+              && [ -n "$(echo ${version}-${{ matrix.module }}-${{ env.repoVersion }} | grep -f .includeTags)" ] \
+              && [ -z "$(echo ${version}-${{ matrix.module }}-${{ env.repoVersion }} | grep -f .excludeTags)" ] \
               && echo "${version}" || : ; \
           done`
           [ -z "${UNITY_VERSIONS_TO_BUILD}" ] && echo "::warning::No versions to build." && echo "::set-output name=skip::true" || :
