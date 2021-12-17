@@ -184,7 +184,7 @@ jobs:
       #  Dispatch build failed  #
       ###########################
       - name: "🚀 Dispatch 'Build Editor Failed'"
-        if: failure()
+        if: failure() && steps.build-2.outcome == 'failure'
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: "Build Editor Failed 🚨"
