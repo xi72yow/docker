@@ -245,9 +245,9 @@ RUN echo "$version-$module" | grep -q -v '^2021.*linux-il2cpp' \
   && rm -rf /var/lib/apt/lists/*
 
 #=======================================================================================
-# [2021.2+] linux-server support
+# [2021.2.4+] linux-server support
 #=======================================================================================
-RUN echo "$version-$module" | grep -q '\(2018\|2019\|2020\|2021.1\|2021.2.0\|2021.2.1\|2021.2.2\|2021.2.3\)' \
+RUN echo "$version-$module" | grep -q '\(2018\|2019\|2020\|2021.1\|2021.2.[0-3]f\)' \
   && exit 0 \
   || : \
   && ( \
@@ -255,7 +255,12 @@ RUN echo "$version-$module" | grep -q '\(2018\|2019\|2020\|2021.1\|2021.2.0\|202
     || wget --no-verbose -O /tmp/linux-server.tar.xz        "https://beta.unity3d.com/download/$changeSet/LinuxEditorTargetInstaller/UnitySetup-Linux-Server-Support-for-Editor-$version.tar.xz" \
   ) \
   && tar Jxfv /tmp/linux-server.tar.xz -C "$UNITY_PATH" \
-  && rm /tmp/linux-server.tar.xz
+  && rm /tmp/linux-server.tar.xz \
+  && ( \
+    [ "$module" != "linux-il2cpp" ] \
+      && rm -rf /opt/unity/Editor/Data/PlaybackEngines/LinuxStandaloneSupport/Variations/*il2cpp \
+      || : \
+  )
 
 #=======================================================================================
 # [2021.2/2022.1-mac-mono] MacStandaloneSupport variation paths (arm64 -> ARM64)
