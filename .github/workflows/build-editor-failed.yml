@@ -5,10 +5,6 @@
 #   GH_WORKFLOW_TOKEN:  Github parsonal access token to dispatch workflow
 name: "Build Editor Failed 🚨"
 
-env:
-  # ================ Repository settings ================
-  ISSUE_NUMBER: 19
-
 on:
   workflow_dispatch:
     inputs:
@@ -24,18 +20,38 @@ jobs:
     outputs:
       already-commented: ${{ steps.fc.outputs.comment-id != '' }}
     steps:
+      - name: Find Issue
+        id: fi
+        uses: micalevisk/last-issue-action@v1.2.2
+        with:
+          labels: |
+            failure report
+      
+      - name: Create Issue 
+        uses: maxkomarychev/oction-create-issue@v0.7.1
+        if: steps.fi.outputs.has_found == 'false'
+        id: ci
+        with:
+          token: ${{ github.token }}
+          title: "🔒 Failed building tags (editor)🚨"
+          body: |
+            test test test
+          labels: |
+            failure report
+
       - name: Find Comment
         uses: peter-evans/find-comment@v1
         id: fc
         with:
-          issue-number: ${{ env.ISSUE_NUMBER }}
+          issue-number: ${{ steps.fi.outputs.issue_number }}${{ steps.ci.outputs.number }}
+          comment-author: "github-actions[bot]"
           body-includes: ${{ github.event.inputs.imageTag }}
 
-      - name: Create comment
+      - name: Create Comment
         if: steps.fc.outputs.comment-id == ''
         uses: peter-evans/create-or-update-comment@v1
         with:
-          issue-number: ${{ env.ISSUE_NUMBER }}
+          issue-number: ${{ steps.fi.outputs.issue_number }}${{ steps.ci.outputs.number }}
           token: ${{ secrets.GH_WORKFLOW_TOKEN }}
           body: |
             The build '${{ github.event.inputs.imageTag }}' failed.
