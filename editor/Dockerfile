@@ -251,15 +251,6 @@ RUN echo "$version-$module" | grep -q -v '^2021.*linux-il2cpp' \
   && rm -rf /var/lib/apt/lists/*
 
 #=======================================================================================
-# [2021.2/2022.1-mac-mono] MacStandaloneSupport variation paths (arm64 -> ARM64)
-#=======================================================================================
-RUN echo "$version-$module" | grep -q -v '^\(2021.2\|2022.1\).*mac-mono' \
-  && exit 0 \
-  || : \
-  && cd /opt/unity/Editor/Data/PlaybackEngines/MacStandaloneSupport/Variations \
-  && ls | grep arm64 | sed 'p;s/arm64/ARM64/' | xargs -n2 mv
-
-#=======================================================================================
 # [2019.3/2019.4/2020.1] mono-devel
 #=======================================================================================
 RUN echo "$version" | grep -q -v '^\(2019.3\|2019.4\|2020.1\)' \
