@@ -109,19 +109,21 @@ jobs:
         id: setup
         run: |
           # If the image tag already exists, skip the build. (base)
-          echo "## linux (${{ env.repoVersion }})" >> $GITHUB_STEP_SUMMARY
           if [ -n "`skopeo list-tags docker://${{ env.DOCKER_REGISTRY }}/${{ env.BASE_IMAGE_REPOSITORY }} | jq -r '.Tags[]' | grep -x '${{ env.repoVersion }}' || :`" ]; then
             echo "base_skip=true" >> $GITHUB_OUTPUT
             echo "skip build (base)"
-            echo "skipped" >> $GITHUB_STEP_SUMMARY
+            echo "linux (${{ env.repoVersion }}) skipped." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "linux (${{ env.repoVersion }})" >> $GITHUB_STEP_SUMMARY
           fi
 
           # If the image tag already exists, skip the build. (hub)
-          echo "## hub (${{ env.repoVersion }})" >> $GITHUB_STEP_SUMMARY
-          [ -n "`skopeo list-tags docker://${{ env.DOCKER_REGISTRY }}/${{ env.HUB_IMAGE_REPOSITORY }}  | jq -r '.Tags[]' | grep -x '${{ env.repoVersion }}' || :`" ]; thne
+          if [ -n "`skopeo list-tags docker://${{ env.DOCKER_REGISTRY }}/${{ env.HUB_IMAGE_REPOSITORY }}  | jq -r '.Tags[]' | grep -x '${{ env.repoVersion }}' || :`" ]; then
             echo "hub_skip=true" >> $GITHUB_OUTPUT
             echo "skip build (hub)"
-            echo "skipped" >> $GITHUB_STEP_SUMMARY
+            echo "hub (${{ env.repoVersion }}) skipped." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "hub (${{ env.repoVersion }})" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Load descriptions
@@ -252,7 +254,6 @@ jobs:
           VERSIONS_JSON=`echo "${UNITY_VERSIONS_TO_BUILD}" | head -n 250 | jq -R '.' | jq -s -c '.' | jq -R '.' || echo '[]'`
           echo "${VERSIONS_JSON}"
           echo "versions=${VERSIONS_JSON}" >> $GITHUB_OUTPUT
-          echo "### ${{ matrix.module }}" >> $GITHUB_STEP_SUMMARY
           echo "${VERSIONS_JSON}" >> $GITHUB_STEP_SUMMARY
 
       ###########################
