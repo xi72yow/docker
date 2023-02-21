@@ -42,7 +42,7 @@ jobs:
           - targetPlatform: WebGL
             module: -webgl
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: game-ci/unity-test-runner@v2
         env:
@@ -60,7 +60,7 @@ jobs:
           customImage: mobsakai/unity3d:${{ matrix.unityVersion }}${{ matrix.module }}
           targetPlatform: ${{ matrix.targetPlatform }}
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: Build
           path: build
