@@ -1,10 +1,10 @@
 ARG baseImage="unityci/base"
 FROM $baseImage
-ARG hubVersion="3.0.0"
+ARG hubVersion="3.4.1"
 
 # Hub dependencies
 RUN apt-get -q update \
- && apt-get -q install -y --no-install-recommends --allow-downgrades zenity libgbm1 gnupg \
+ && apt-get -q install -y --no-install-recommends --allow-downgrades zenity libgbm1 gnupg desktop-file-utils \
  && apt-get clean
 
 # Install Unity Hub
