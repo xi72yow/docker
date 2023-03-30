@@ -83,9 +83,14 @@ For details, see https://game.ci/docs/github/getting-started
   * The release is [based on a committed message](https://www.conventionalcommits.org/)
   * Tagging based on [Semantic Versioning 2.0.0](https://semver.org/)
     * Use `v1.0.0` insted of `v1.0`
-* Run workflow manually or automatically
-  * Build all images on tag pushed
-  * Check/Build all new editor images every day
+* Run build workflow automatically or manually
+  * Run workflow when a new version is released in this repository
+  * Run workflow when a new version of Unity is released (RSS)
+    * https://unity.com/releases/editor/releases.xml
+    * https://unity3d.com/unity/beta/latest.xml
+    * [Zapier](https://zapier.com/editor/135764435/published/186371035) creates a new comment in [this issue](https://github.com/mob-sakai/docker/issues/28)
+    * Run workflow when a comment start with `/build-all`
+  * Run workflow daily at 0:00 (UTC)
   * Run workflow manually from [Actions page](../../actions)
 * Fast skip earlier builds of images that already exist
 * Add build configurations file (`.github/workflow/.env`)
