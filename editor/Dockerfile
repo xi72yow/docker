@@ -10,7 +10,7 @@ FROM $hubImage AS builder
 # Install editor
 ARG version
 ARG changeSet
-RUN unity-hub install --version "$version" --changeset "$changeSet" | tee /var/log/install-editor.log && grep 'Error while installing an editor or a module from changeset.' /var/log/install-editor.log | exit $(wc -l)
+RUN unity-hub install --version "$version" --changeset "$changeSet" | tee /var/log/install-editor.log && grep 'Error' /var/log/install-editor.log | exit $(wc -l)
 
 # Install modules for that editor
 ARG module="non-existent-module"
