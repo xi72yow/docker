@@ -2,7 +2,56 @@
 
 CI specialised docker images for Unity3d.
 
-<br><br><br>
+
+<br><br>
+
+## :wrench: Use the images
+
+The image names and tags are defined as follows:
+
+```sh
+# image name/tag
+# mobsakai/unity3d:<UnityVersion>[Module]
+
+# Use Unity 2022.3.0f1
+$ docker pull mobsakai/unity3d:2022.3.0f1
+
+# Use Unity 2022.3.0f1 with the added WebGL module
+$ docker pull mobsakai/unity3d:2022.3.0f1-webgl
+```
+
+- UnityVersion: Required. Specifies the Unity version. Beta versions are also available.
+  - `2022.3.5f1`
+  - `2023.3.0a6`
+- Module: Optional. Specifies the Unity module. (default: `-base`)
+  - `-base`: No additional modules. Equivalent to "linux-mono".
+  - `-linux-il2cpp`
+  - `-mac-mono`
+  - `-windows-mono`
+  - `-android`
+  - `-ios`
+  - `-webgl`
+
+In the following steps, you can activate the Unity license, build the Unity project, and run tests:
+
+```sh
+# Mount the current directory to the home directory in the container and start
+$ docker run -v "$(pwd):/home" -w "/home" -it mobsakai/unity3d:2022.3.0f1-webgl /bin/bash
+
+# First, activate the license
+/home$ unity-editor -batchmode -manualLicenseFile <your_ulf_file>
+
+# Run tests (com.unity.test-framework)
+/home$ unity-editor -batchmode -nographics -projectPath . -buildTarget WebGL -runTests
+
+# Build (com.coffee.simple-build-interface)
+/home$ unity-editor -batchmode -nographics -projectPath . -buildTarget WebGL -build
+
+# Build (your script)
+/home$ unity-editor -batchmode -nographics -projectPath . -buildTarget WebGL -executeMethod YourClass.BuildMethod
+```
+
+<br><br>
 
 ## :wrench: Use the images on Github Actions
 
@@ -42,7 +91,7 @@ jobs:
           - targetPlatform: WebGL
             module: -webgl
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: game-ci/unity-test-runner@v2
         env:
@@ -60,7 +109,7 @@ jobs:
           customImage: mobsakai/unity3d:${{ matrix.unityVersion }}${{ matrix.module }}
           targetPlatform: ${{ matrix.targetPlatform }}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: Build
           path: build
