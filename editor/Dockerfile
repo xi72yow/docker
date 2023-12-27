@@ -41,7 +41,6 @@ FROM $baseImage
 # Always put "Editor" and "modules.json" directly in $UNITY_PATH
 ARG version
 ARG module
-ARG changeSet
 COPY --from=builder /opt/unity/editors/$version/ "$UNITY_PATH/"
 
 # Add a file containing the version for this build
@@ -311,17 +310,5 @@ RUN echo "$version-$module" | grep -q -v '^2021.*linux-il2cpp' \
   && apt-get -q update \
   && apt-get -q install -y --no-install-recommends --allow-downgrades \
     lld \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
-
-#=======================================================================================
-# [2019.3/2019.4/2020.1] mono-devel
-#=======================================================================================
-RUN echo "$version" | grep -q -v '^\(2019.3\|2019.4\|2020.1\)' \
-  && exit 0 \
-  || : \
-  && apt-get -q update \
-  && apt-get -q install -y --no-install-recommends --allow-downgrades \
-    mono-devel \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
