@@ -208,20 +208,20 @@ jobs:
           tags: editor:dev
 
       ###########################
-      #      Setup to test      #
+      #     Show image size     #
       ###########################
       - name: Show image size
         run: docker images
-      - name: Setup to test
-        run: |
-          # For 'linux-il2cpp' module, switch the script backend to 'IL2CPP'
-          if [ "${{ matrix.module }}" = "linux-il2cpp" ] ; then
-            mv -f reference-project/ProjectSettings/ProjectSettings_il2cpp.asset reference-project/ProjectSettings/ProjectSettings.asset
-          fi
 
       ###########################
       #          Build          #
       ###########################
+      - name: "⚙️ Setup (IL2CPP)"
+        run: |
+          # For 'linux-il2cpp' module, switch the script backend to 'IL2CPP'
+          if [ "${{ matrix.module }}" = "linux-il2cpp" ] ; then
+            sed -i -e 's/Standalone: 0$/Standalone: 1/' reference-project/ProjectSettings/ProjectSettings.asset
+          fi
       - name: Build project
         uses: game-ci/unity-builder@main
         timeout-minutes: 35
