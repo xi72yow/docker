@@ -1,6 +1,6 @@
-ARG baseImage="unityci/base"
+ARG baseImage=ghcr.io/mob-sakai/unity3d_base:latest
 FROM $baseImage
-ARG hubVersion="3.4.2"
+ARG hubVersion=3.7.0
 
 # Hub dependencies
 RUN apt-get -q update \

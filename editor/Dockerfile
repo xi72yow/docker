@@ -1,5 +1,5 @@
-ARG hubImage="unityci/hub"
-ARG baseImage="unityci/base"
+ARG hubImage=ghcr.io/mob-sakai/unity3d_hub:latest
+ARG baseImage=ghcr.io/mob-sakai/unity3d_base:latest
 
 ###########################
 #         Builder         #
@@ -13,16 +13,10 @@ ARG changeSet
 RUN unity-hub install --version "$version" --changeset "$changeSet" | tee /var/log/install-editor.log && grep 'Failed to install\|Error while installing an editor\|Completed with errors' /var/log/install-editor.log | exit $(wc -l)
 
 # Install modules for that editor
-ARG module="non-existent-module"
-RUN for mod in $module; do \
-      if [ "$mod" = "base" ] ; then \
-        echo "running default modules for this baseOs"; \
-      else \
-        unity-hub install-modules --version "$version" --module "$mod" --childModules | tee /var/log/install-module-${mod}.log && grep 'Missing module\|Completed with errors' /var/log/install-module-${mod}.log | exit $(wc -l); \
-      fi \
-    done \
-	# Set execute permissions for modules
-	&& chmod -R 755 /opt/unity/editors/$version/Editor/Data/PlaybackEngines
+ARG module=base
+RUN [ "$module" = "base" ] \
+  && exit 0 \
+  || unity-hub install-modules --version "$version" --module "$module" --childModules | tee /var/log/install-module-${module}.log && grep 'Failed to install\|Missing module\|Completed with errors' /var/log/install-module-${module}.log | exit $(wc -l)
 
 RUN echo "$version-$module" | grep -q -vP '^(2021.2.(?![0-4](?![0-9]))|2021.[3-9]|202[2-9]|20[3-9]).*linux' \
   && exit 0 \

@@ -1,8 +1,10 @@
-name: Test
+name: 🧪 Test
 
 on:
   workflow_dispatch:
   push:
+    branches:
+      develop
     paths:
       - "**/Dockerfile"
       - ".github/workflows/test.yml"
@@ -15,87 +17,80 @@ on:
   schedule:
     - cron: "0 0 * * 0" # weekly
 
-env:
-  MINIMUM_VERSION: "2021.3"
-
 jobs:
   ###########################
   #    Build base and hub   #
   ###########################
   base-and-hub:
-    name: Base and hub
+    name: 🛠️ Build base and hub images
     runs-on: ubuntu-latest
     outputs:
       versions: ${{ steps.setup.outputs.versions }}
-      excludes: ${{ steps.setup.outputs.excludes }}
     steps:
       ###########################
       #          Setup          #
       ###########################
-      - uses: actions/checkout@v4
-      - run: cat .env | sed 's/=\" *$/<<EOD/g' | sed 's/^\"/EOD/g' | grep '^[^# ]' >> $GITHUB_ENV
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+      - name: 🚚 Checkout
+        uses: actions/checkout@v4
+      - name: ⚙️ Setup QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: ⚙️ Setup Buildx
+        uses: docker/setup-buildx-action@v3
         with:
           driver: docker
 
       ###########################
       #   Build base and hub    #
       ###########################
-      - name: Build base
+      - name: 🛠️ Build image (unity3d_base:local)
         uses: docker/build-push-action@v5
         with:
           context: .
           file: base/Dockerfile
-          build-args: |
-            ubuntuImage=${{ env.UBUNTU_IMAGE }}
-          tags: base:dev
-      - name: Build hub
+          tags: unity3d_base:local
+      - name: 🛠️ Build image (unity3d_hub:local)
         uses: docker/build-push-action@v5
         with:
           context: .
           file: hub/Dockerfile
-          build-args: baseImage=base:dev
-          tags: hub:dev
+          build-args: baseImage=unity3d_base:local
+          tags: unity3d_hub:local
 
       ###########################
       #   Save images for next  #
       ###########################
-      - name: Save images for next
+      - name: 💾 Save images for next
         run: |
           docker images
-          docker save -o base-and-hub.tar base:dev hub:dev
-      - uses: actions/upload-artifact@v4
+          docker save -o base-and-hub.tar unity3d_base:local unity3d_hub:local
+      - name: 📦 Upload base and hub images for next
+        uses: actions/upload-artifact@v4
         with:
+          name: base-and-hub
           path: base-and-hub.tar
           retention-days: 1
 
       ###########################
       #    Setup build matrix   #
       ###########################
-      - name: "Setup build matrix"
+      - name: ⚙️ Setup build matrix
         id: setup
         run: |
-          # Get the Unity versions for test. (The latest patch versions for each minor version.)
-          [ "${{ env.INCLUDE_BETA_VERSIONS }}" = 'true' ] && OPT='--all' || OPT=''
-          VERSIONS=`npx unity-changeset list --versions --json --min ${{ env.MINIMUM_VERSION }} --latest-patch ${OPT}`
-          echo "Versions: $VERSIONS"
-          echo "versions=$VERSIONS" >> $GITHUB_OUTPUT
-
-          # Exclude linux-il2cpp for Unity 2019.2 or earlier
-          EXCLUDES="$EXCLUDES `echo \"$VERSIONS\" | jq -c '[ .[] | select(test(\"2018|2019.1|2019.2\")) | { version: ., module: \"linux-il2cpp\"} ]'`"
-
-          EXCLUDES=`echo "$EXCLUDES" | jq -s -c 'flatten'`
-          echo "Excludes: $EXCLUDES"
-          echo "excludes=$EXCLUDES" >> $GITHUB_OUTPUT
+          MIN_VERSION=`cat .minimumUnityVersion`
+          UNITY_VERSIONS_JSON=`npx --yes unity-changeset list --versions --json --min $MIN_VERSION --latest-patch --all`
+          echo "versions=$UNITY_VERSIONS_JSON" | tee $GITHUB_OUTPUT $GITHUB_STEP_SUMMARY
 
   ###########################
   #  Build editor and test  #
   ###########################
   editor:
     needs: base-and-hub
-    name: Editor (${{ matrix.version }}-${{ matrix.module }})
+    name: 🧪 Test editor (${{ matrix.version }}-${{ matrix.module }})
     runs-on: ubuntu-latest
+    env:
+      UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+      UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -125,48 +120,45 @@ jobs:
             platform: Android
           - module: webgl
             platform: WebGL
-        exclude: ${{ fromJson(needs.base-and-hub.outputs.excludes) }}
 
     steps:
       ###########################
       #          Setup          #
       ###########################
-      - uses: actions/checkout@v4
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+      - name: 🚚 Checkout
+        uses: actions/checkout@v4
+      - name: ⚙️ Setup QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: ⚙️ Setup Buildx
+        uses: docker/setup-buildx-action@v3
         with:
           driver: docker
-      - name: Free disk space
+      - name: 🧹 Free disk space
         run: .github/workflows/scripts/free_disk_space.sh
 
       ###########################
       #   Restore base and hub  #
       ###########################
-      - uses: actions/download-artifact@v4
-      - name: Restore base and hub
+      - name: 📥 Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: base-and-hub
+
+      - name: 📥 Restore base and hub
         run: |
-          docker load -i artifact/base-and-hub.tar
-          rm -rf artifact
+          docker load -i base-and-hub.tar
 
       ###########################
       #      Setup to build     #
       ###########################
-      - name: Setup to build
-        run: |
-          # The changeset for unity version
-          echo "CHANGESET=`npx unity-changeset ${{ matrix.version }}`" >> $GITHUB_ENV
-
-          # For 2019.3 or later, non-il2cpp would also be possible to build with il2cpp image.
-          if [ `echo "${{ matrix.version }}" | grep -v '\(2018\|2019.1\|2019.2\)'` ] && [ "${{ matrix.module }}" = 'base' ] ; then
-            echo "MODULE=linux-il2cpp" >> $GITHUB_ENV
-          else
-            echo "MODULE=${{ matrix.module }}" >> $GITHUB_ENV
-          fi
+      - name: 🔍 Find changeSet for ${{ matrix.version }}
+        id: changeSet
+        run: echo "value=`npx --yes unity-changeset ${{ matrix.version }}`" | tee $GITHUB_OUTPUT
 
       ###########################
       #       Build editor      #
       ###########################
-      - name: Build
+      - name: 🛠️ Build image (unity3d:local)
         # if: steps.build-1.outcome == 'failure'
         uses: docker/build-push-action@v5
         id: build-1
@@ -176,21 +168,21 @@ jobs:
           context: .
           file: editor/Dockerfile
           build-args: |
-            baseImage=base:dev
-            hubImage=hub:dev
+            baseImage=unity3d_base:local
+            hubImage=unity3d_hub:local
             version=${{ matrix.version }}
-            changeSet=${{ env.CHANGESET }}
-            module=${{ env.MODULE }}
-          tags: editor:dev
+            changeSet=${{ steps.changeSet.outputs.value }}
+            module=${{ matrix.module }}
+          tags: unity3d:local
 
       ###########################
       #   Build editor (retry)  #
       ###########################
-      - name: Sleep for retry
+      - name: 💤 Sleep for retry
         if: steps.build-1.outcome == 'failure'
         run: sleep 120
 
-      - name: Build (Retry)
+      - name: 🛠️ Build Image (unity3d:local, retry)
         if: steps.build-1.outcome == 'failure'
         uses: docker/build-push-action@v5
         id: build-2
@@ -200,38 +192,59 @@ jobs:
           context: .
           file: editor/Dockerfile
           build-args: |
-            baseImage=base:dev
-            hubImage=hub:dev
+            baseImage=unity3d_base:local
+            hubImage=unity3d_hub:local
             version=${{ matrix.version }}
-            changeSet=${{ env.CHANGESET }}
-            module=${{ env.MODULE }}
-          tags: editor:dev
+            changeSet=${{ steps.changeSet.outputs.value }}
+            module=${{ matrix.module }}
+          tags: unity3d:local
+
+      - name: 📥 Cache library
+        uses: actions/cache@v4
+        with:
+          path: reference-project/Library
+          key: Library-${{ matrix.version }}-${{ matrix.platform }}-${{ github.sha }}
+          restore-keys: |
+            Library-${{ matrix.version }}-${{ matrix.platform }}-
+            Library-${{ matrix.version }}-
+            Library-
 
       ###########################
-      #     Show image size     #
+      #           Test          #
       ###########################
-      - name: Show image size
-        run: docker images
+      - name: 🧪 Run tests
+        uses: game-ci/unity-test-runner@main
+        timeout-minutes: 45
+        with:
+          unityVersion: ${{ matrix.version }}
+          customImage: unity3d:local
+          projectPath: reference-project
+          customParameters: -nographics -buildTarget ${{ matrix.platform }}
+
+      ###########################
+      # Validate Android Utils  #
+      ###########################
+      - name: 🔍 Validate Android Utils
+        if: matrix.module == 'android'
+        uses: addnab/docker-run-action@v3
+        with:
+          image: unity3d:local
+          run: bash -l -c 'java -version && sdkmanager --version && sdkmanager --list'
 
       ###########################
       #          Build          #
       ###########################
-      - name: "⚙️ Setup (IL2CPP)"
+      - name: ⚙️ Setup (IL2CPP)
+        if: matrix.module == 'linux-il2cpp'
         run: |
-          # For 'linux-il2cpp' module, switch the script backend to 'IL2CPP'
-          if [ "${{ matrix.module }}" = "linux-il2cpp" ] ; then
-            sed -i -e 's/Standalone: 0$/Standalone: 1/' reference-project/ProjectSettings/ProjectSettings.asset
-          fi
-      - name: Build project
+          sed -i -e 's/Standalone: 0$/Standalone: 1/' reference-project/ProjectSettings/ProjectSettings.asset
+
+      - name: 🛠️ Build Unity Project ${{ matrix.module }}
         uses: game-ci/unity-builder@main
-        timeout-minutes: 35
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        timeout-minutes: 45
         with:
           unityVersion: ${{ matrix.version }}
-          customImage: editor:dev
+          customImage: unity3d:local
           projectPath: reference-project
           targetPlatform: ${{ matrix.platform }}
           allowDirtyBuild: true
@@ -240,22 +253,18 @@ jobs:
       ###########################
       #       Build (GZip)      #
       ###########################
-      - name: "⚙️ Setup (GZip)"
-        if: env.MODULE == 'webgl'
+      - name: ⚙️ Setup (WebGL, GZip)
+        if: matrix.module == 'webgl'
         run: |
-          # Set WebGL compression format to gzip
           sed -i -e 's/webGLCompressionFormat: .*$/webGLCompressionFormat: 1/' reference-project/ProjectSettings/ProjectSettings.asset
-      - name: Build project (GZip)
-        if: env.MODULE == 'webgl'
+
+      - name: 🛠️ Build Unity Project (WebGL, GZip)
+        if: matrix.module == 'webgl'
         uses: game-ci/unity-builder@main
-        timeout-minutes: 35
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        timeout-minutes: 45
         with:
           unityVersion: ${{ matrix.version }}
-          customImage: editor:dev
+          customImage: unity3d:local
           projectPath: reference-project
           targetPlatform: ${{ matrix.platform }}
           allowDirtyBuild: true
@@ -264,49 +273,19 @@ jobs:
       ###########################
       #       Build (Brotli)      #
       ###########################
-      - name: "⚙️ Setup (Brotli)"
-        if: env.MODULE == 'webgl'
+      - name: ⚙️ Setup (WebGL, Brotli)
+        if: matrix.module == 'webgl'
         run: |
-          # Set WebGL compression format to brotli
           sed -i -e 's/webGLCompressionFormat: .*$/webGLCompressionFormat: 0/' reference-project/ProjectSettings/ProjectSettings.asset
-      - name: Build project (Brotli)
-        if: env.MODULE == 'webgl'
+
+      - name: 🛠️ Build Unity Project (WebGL, Brotli)
+        if: matrix.module == 'webgl'
         uses: game-ci/unity-builder@main
-        timeout-minutes: 35
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        timeout-minutes: 45
         with:
           unityVersion: ${{ matrix.version }}
-          customImage: editor:dev
+          customImage: unity3d:local
           projectPath: reference-project
           targetPlatform: ${{ matrix.platform }}
           allowDirtyBuild: true
           customParameters: -nographics
-
-      ###########################
-      #           Test          #
-      ###########################
-      - name: Test project
-        uses: game-ci/unity-test-runner@main
-        timeout-minutes: 35
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-        with:
-          unityVersion: ${{ matrix.version }}
-          customImage: editor:dev
-          projectPath: reference-project
-          customParameters: -nographics -buildTarget ${{ matrix.platform }}
-
-      ###########################
-      # Validate Android Utils  #
-      ###########################
-      - name: Validate Android Utils
-        if: env.MODULE == 'android'
-        uses: addnab/docker-run-action@v3
-        with:
-          image: editor:dev
-          run: bash -l -c 'java -version && sdkmanager --version && cat $ANDROID_NDK_HOME/source.properties'

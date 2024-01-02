@@ -1,4 +1,4 @@
-name: release
+name: 🔖 Release
 
 on:
   push:
@@ -9,19 +9,32 @@ on:
 
 jobs:
   release:
+    name: 🔖 Release (${{ github.ref_name }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    outputs:
+      released: ${{ steps.release.outputs.new_release_published }}
     steps:
-      - uses: actions/checkout@v4
+      - name: 🚚 Checkout (${{ github.ref_name }})
+        uses: actions/checkout@v4
 
-      - uses: cycjimmy/semantic-release-action@v4
+      - name: 🔖 Run semantic release
+        uses: cycjimmy/semantic-release-action@v4
         id: release
         env:
           GITHUB_TOKEN: ${{ github.token }}
+
+      - run: |
+          echo "🔖 New release published: '${{ steps.release.outputs.new_release_published }}'" | tee -a $GITHUB_STEP_SUMMARY
+          echo "🔖 New release channel: '${{ steps.release.outputs.new_release_channel }}'" | tee -a $GITHUB_STEP_SUMMARY
+          echo "🔖 New release git tag: '${{ steps.release.outputs.new_release_git_tag }}'" | tee -a $GITHUB_STEP_SUMMARY
 
       - name: Dispatch 'Build All 🛠️' workflow
         if: steps.release.outputs.new_release_published == 'true'
         uses: benc-uk/workflow-dispatch@v1
         with:
-          workflow: "Build All 🛠️"
-          token: ${{ secrets.GH_WORKFLOW_TOKEN }}
+          workflow: build-all.yml
           ref: v${{ steps.release.outputs.new_release_version }}
