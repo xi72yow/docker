@@ -15,6 +15,7 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
+      actions: write
     outputs:
       released: ${{ steps.release.outputs.new_release_published }}
     steps:
