@@ -1,3 +1,4 @@
 # IDE settings
 .idea/
+tmp/
 .DS_Store
