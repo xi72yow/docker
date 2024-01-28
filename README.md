@@ -11,13 +11,15 @@ The image names and tags are defined as follows:
 
 ```sh
 # image name/tag
-# mobsakai/unity3d:<UnityVersion>[Module]
+#   - ghcr.io/mob-sakai/unity3d:<UnityVersion>[Module]
+#   - docker.io/mobsakai/unity3d:<UnityVersion>[Module]
+#   - mobsakai/unity3d:<UnityVersion>[Module]
 
 # Use Unity 2022.3.0f1
-$ docker pull mobsakai/unity3d:2022.3.0f1
+$ docker pull ghcr.io/mob-sakai/unity3d:2022.3.0f1
 
 # Use Unity 2022.3.0f1 with the added WebGL module
-$ docker pull mobsakai/unity3d:2022.3.0f1-webgl
+$ docker pull ghcr.io/mob-sakai/unity3d:2022.3.0f1-webgl
 ```
 
 - UnityVersion: Required. Specifies the Unity version. Beta versions are also available.
@@ -26,6 +28,7 @@ $ docker pull mobsakai/unity3d:2022.3.0f1-webgl
 - Module: Optional. Specifies the Unity module. (default: `-base`)
   - `-base`: No additional modules. Equivalent to "linux-mono".
   - `-linux-il2cpp`
+  - `-linux-server`
   - `-mac-mono`
   - `-windows-mono`
   - `-android`
@@ -36,9 +39,10 @@ In the following steps, you can activate the Unity license, build the Unity proj
 
 ```sh
 # Mount the current directory to the home directory in the container and start
-$ docker run -v "$(pwd):/home" -w "/home" -it mobsakai/unity3d:2022.3.0f1-webgl /bin/bash
+$ docker run -v "$(pwd):/home" -w "/home" -it ghcr.io/mob-sakai/unity3d:2022.3.0f1-webgl /bin/bash
 
-# First, activate the license
+# In container,
+# first, activate the license
 /home$ unity-editor -batchmode -manualLicenseFile <your_ulf_file>
 
 # Run tests (com.unity.test-framework)
@@ -60,7 +64,7 @@ $ docker run -v "$(pwd):/home" -w "/home" -it mobsakai/unity3d:2022.3.0f1-webgl 
 ```yml
 - uses: game-ci/unity-test-runner@v2
   with:
-    customImage: mobsakai/unity3d:2020.3.0f1-webgl
+    customImage: ghcr.io/mob-sakai/unity3d:2020.3.0f1-webgl
     ...
 ```
 
@@ -93,20 +97,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: game-ci/unity-test-runner@v2
+      - uses: game-ci/unity-test-runner@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }
         with:
-          customImage: mobsakai/unity3d:${{ matrix.unityVersion }}${{ matrix.module }}
+          customImage: ghcr.io/mob-sakai/unity3d:${{ matrix.unityVersion }}${{ matrix.module }}
           customParameters: -nographics
           targetPlatform: ${{ matrix.targetPlatform }}
           githubToken: ${{ github.token }}
 
-      - uses: game-ci/unity-builder@v2
+      - uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          customImage: mobsakai/unity3d:${{ matrix.unityVersion }}${{ matrix.module }}
+          customImage: ghcr.io/mob-sakai/unity3d:${{ matrix.unityVersion }}${{ matrix.module }}
           targetPlatform: ${{ matrix.targetPlatform }}
 
       - uses: actions/upload-artifact@v4
@@ -148,7 +154,7 @@ For details, see https://game.ci/docs/github/getting-started
 * Grouping workflows in a module (base, ios, android, ...)
   * Improve the visibility of actions page
   * Easy to retry
-* Support short image tags (eg. `mobsakai/unity3d:2020.3.0f1` for Linux (Mono), `mobsakai/unity3d:2020.3.0f1-webgl` for WebGL, etc.)
+* Support short image tags (eg. `ghcr.io/mob-sakai/unity3d:2020.3.0f1` for Linux (Mono), `ghcr.io/mob-sakai/unity3d:2020.3.0f1-webgl` for WebGL, etc.)
 * Image tags that fail to build twice will automatically be ignored
   * [This locked issue](https://github.com/mob-sakai/docker/issues/19) is used for failure log
 
@@ -156,30 +162,27 @@ For details, see https://game.ci/docs/github/getting-started
 
 ## :hammer: How to build images
 
-### 1. :pencil2: Setup build configurations (.env)
+For details, see https://github.com/mob-sakai/docker/blob/main/DEVELOPMENT.md
 
-See [.env](https://github.com/mob-sakai/docker/blob/main/.env)
+### 1. :pencil2: Setup build configurations
 
-```sh
-# ================= Registry settings =================
-DOCKER_REGISTRY=docker.io
-# DOCKER_REGISTRY=ghcr.io
-# DOCKER_REGISTRY=gcr.io
-# ================ Repository settings ================
-BASE_IMAGE_REPOSITORY=mobsakai/unity3d_base
-HUB_IMAGE_REPOSITORY=mobsakai/unity3d_hub
-EDITOR_IMAGE_REPOSITORY=mobsakai/unity3d
-# =================== Build settings ==================
-UBUNTU_IMAGE=ubuntu:18.04
-MINIMUM_UNITY_VERSION=2018.3
-INCLUDE_BETA_VERSIONS=true
-# Excluded image tags (Regular expressions)
-EXCLUDE_IMAGE_TAGS="
-2018.*-linux-il2cpp
-2019.1.*-linux-il2cpp
-2019.2.*-linux-il2cpp
-<<AUTO_IGNORED_IMAGE_TAGS>>
-"
+#### .minimumUnityVersion
+
+Minimum Unity version for build
+
+```env
+2019.4
+```
+
+
+#### .ignoreTags
+
+Excluded image tags for build (Regular expressions)
+
+```env
+2019.1
+2019.2
+2019.3
 ```
 
 <br><br>
@@ -227,16 +230,6 @@ Re-run `Build All` workflow manually after all jobs are done.
 ### :exclamation: Missing library for editor
 
 If a missing library is found, fix the `editor/Dockerfile` or `base/Dockerfile`.
-
-<br><br><br>
-
-## :bulb: Next plans
-
-* Test the build for each patch versions (2018.3.0, 2018.3.1, ...)
-  * May be unnecessary for stable versions (2018.x, 2019.x)
-  * Build a simple project for all platforms
-  * Inspect the missing library
-* Notify the error summary to mail, Slack or Discord
 
 
 <br><br><br><br>

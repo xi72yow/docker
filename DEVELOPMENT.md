@@ -1,11 +1,9 @@
 # Development
 
-## Setup
-
 Clone this repo
 
 ```bash
-git clone git@github.com:game-ci/docker.git 
+git clone git@github.com:mob-sakai/docker.git
 ```
 
 Change directory to clone directory
@@ -14,22 +12,22 @@ Change directory to clone directory
 cd docker
 ```
 
-Build the base image
+Build the editor image
 
 ```bash
-docker build -t base -f base/Dockerfile .
+# build editor: ./build.sh <unityVersion> [module]
+#   unityVersion: e.g. 2020.3.0f1
+#   module: base,linux-il2cpp,windows-mono,mac-mono,ios,android,webgl (default: base)
+./build.sh 2022.3.16f1 webgl # unity3d:2022.3.16f1-webgl will be created
 ```
 
-Build hub
+Run the editor image
 
 ```bash
-docker build -t hub -f hub/Dockerfile .
+# run editor: ./run.sh <command> <unityVersion> [module]
+#   command: build,test
+#   unityVersion: e.g. 2020.3.0f1
+#   module: base,linux-il2cpp,windows-mono,mac-mono,ios,android,webgl (default: base)
+./run.sh build 2022.3.16f1 webgl
+./run.sh test 2022.3.16f1 webgl
 ```
-
-Build editor
-
-```bash
-docker build -t editor -f editor/Dockerfile .
-```
-
-
