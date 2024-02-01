@@ -200,17 +200,6 @@ jobs:
       - name: ⚙️ Setup ignored tags
         run: |
           cat .ignoreTags | tee -a .ignoreTags_tmp
-
-          if [ '${{ matrix.module }}' != 'base' ]; then
-            echo ""
-            echo "======== Additional excluded image tags (base is not found) ========"
-            skopeo list-tags docker://ghcr.io/mob-sakai/unity3d | jq -r '.Tags[]' | grep -v '^ubuntu' | grep -e "-base-${{ env.tag }}$" > .existBaseTags || touch .existBaseTags
-            for version in $(cat .availableUnityVersions) ; do
-              if [ -z "$(grep ${version} .existBaseTags)" ]; then
-                echo ${version} | tee -a .ignoreTags_tmp
-              fi
-            done
-          fi
           sed '/^$/d' .ignoreTags_tmp > .ignoreTags
 
       - name: ⚙️ Setup Unity versions to build
