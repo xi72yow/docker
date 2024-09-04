@@ -116,7 +116,7 @@ jobs:
           tags: type=semver,pattern={{raw}},value=${{ steps.latest.outputs.release }}
       - name: 🛠️ (base) Build and push
         if: steps.setup_base.outputs.skip != 'true'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: base/Dockerfile
@@ -145,7 +145,7 @@ jobs:
           tags: type=semver,pattern={{raw}},value=${{ steps.latest.outputs.release }}
       - name: 🛠️ (hub) Build and push
         if: steps.setup_hub.outputs.skip != 'true'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: hub/Dockerfile
