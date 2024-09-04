@@ -2,8 +2,8 @@ ARG ubuntuImage="ubuntu:22.04"
 FROM $ubuntuImage
 
 # Fixes a Gradle crash while building for Android on Unity 2019 when there are accented characters in environment variables
-ENV LANG C.UTF-8
-ENV LC_ALL C.UTF-8
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 
 # Set frontend to Noninteractive in Debian configuration.
 # https://github.com/phusion/baseimage-docker/issues/58#issuecomment-47995343
