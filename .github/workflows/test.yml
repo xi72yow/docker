@@ -1,5 +1,11 @@
 name: 🧪 Test
 
+env:
+  # MINIMUM_VERSION: The minimum version of Unity.
+  MINIMUM_VERSION: 2021.3
+  # EXCLUDE_FILTER: The excluded versions of Unity.
+  EXCLUDE_FILTER: '(2022.1|2022.2|2023.1|2023.2|2023.3)'
+
 on:
   workflow_dispatch:
   push:
@@ -76,9 +82,13 @@ jobs:
       - name: ⚙️ Setup build matrix
         id: setup
         run: |
-          MIN_VERSION=`cat .minimumUnityVersion`
-          UNITY_VERSIONS_JSON=`npx --yes unity-changeset list --versions --json --min $MIN_VERSION --latest-patch --all`
-          echo "versions=$UNITY_VERSIONS_JSON" | tee $GITHUB_OUTPUT $GITHUB_STEP_SUMMARY
+          LATEST_VERSIONS=`npx --yes unity-changeset list --versions --latest-patch --min ${MINIMUM_VERSION} --json --all`
+          # ADDITIONAL_VERSIONS=`npx unity-changeset list --versions --grep '0f' --min ${MINIMUM_VERSION} --json`
+          ADDITIONAL_VERSIONS=[]
+
+          VERSIONS=`echo "[${LATEST_VERSIONS}, ${ADDITIONAL_VERSIONS}]" \
+            | jq -c '[ flatten | sort | unique | .[] | select( test("${{ env.EXCLUDE_FILTER }}") | not ) ]'`
+          echo "versions=${VERSIONS}" | tee $GITHUB_OUTPUT $GITHUB_STEP_SUMMARY
 
   ###########################
   #  Build editor and test  #
