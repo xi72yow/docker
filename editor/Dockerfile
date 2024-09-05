@@ -45,7 +45,7 @@ RUN mkdir -p /opt/unityResources \
   && mv $UNITY_PATH/Editor/Data/Resources/unity* /opt/unityResources/
 RUN mv $UNITY_PATH/Editor/Data/Resources/ /opt/Resources/
 RUN mkdir -p /opt/Frameworks \
-  && find $UNITY_PATH/Editor/Data/ -maxdepth 1 -type d -name "Net*" -o -name "Mono*" -o -name "il2cpp*" | xargs -n 1 -I{} mv {} opt/Frameworks/
+  && find $UNITY_PATH/Editor/Data/ -maxdepth 1 -type d -name "Net*" -o -name "Mono*" -o -name "il2cpp*" | xargs -I{} mv {} opt/Frameworks/
 RUN mkdir -p /opt/libs \
   && mv $UNITY_PATH/Editor/*.so* /opt/libs/
 
