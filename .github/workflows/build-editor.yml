@@ -124,7 +124,7 @@ jobs:
         # if: steps.build-1.outcome == 'failure'
         id: build-1
         continue-on-error: true
-        timeout-minutes: 40
+        timeout-minutes: 80
         with:
           context: .
           file: editor/Dockerfile
@@ -151,7 +151,7 @@ jobs:
         if: steps.build-1.outcome == 'failure'
         id: build-2
         # continue-on-error: true
-        timeout-minutes: 40
+        timeout-minutes: 80
         with:
           context: .
           file: editor/Dockerfile
