@@ -14,6 +14,7 @@
 #   DOCKER_PASSWORD:    Docker password/token
 #   GH_WORKFLOW_TOKEN:  Github parsonal access token to dispatch workflow
 name: 🛠️ Build Editor
+run-name: 🛠️ Build Editor (${{ inputs.module }}, ${{ inputs.tag }})
 
 on:
   workflow_dispatch:
@@ -174,6 +175,7 @@ jobs:
         if: failure() && steps.build-2.outcome == 'failure'
         uses: benc-uk/workflow-dispatch@v1
         with:
+          token: ${{ secrets.GH_TOKEN }}
           workflow: build-editor-failed.yml
           inputs: '{ "imageTag": "${{ matrix.version }}-${{ inputs.module }}-${{ inputs.tag }}" }'
           ref: ${{ github.ref }}

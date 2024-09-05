@@ -2,11 +2,7 @@
 
 CI specialised docker images for Unity3d.
 
-- ⚠️ This project is archived at 2024/09/05.
-- Only linux versions will be updated.
-- Please use game-ci instead.
-
-<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+<br><br>
 
 ## :wrench: Use the images
 

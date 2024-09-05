@@ -1,13 +1,24 @@
 name: 🧪 Test
 
 env:
-  # MINIMUM_VERSION: The minimum version of Unity.
+  # MINIMUM_VERSION: The minimum version to test.
   MINIMUM_VERSION: 2021.3
-  # EXCLUDE_FILTER: The excluded versions of Unity.
+  # ADDITIONAL_VERSIONS: The additional versions.
+  ADDITIONAL_VERSIONS: '[]'
+  # EXCLUDE_FILTER: The excluded versions.
   EXCLUDE_FILTER: '(2022.1|2022.2|2023.1|2023.2|2023.3)'
 
 on:
   workflow_dispatch:
+    inputs:
+      versions:
+        description: 'The versions to test. If empty, the latest patch for each minor version is automatically fetched. (e.g. ["2021.3.0f1", "2022.3.0f1", "6000.0.2f1"])'
+        required: false
+        default: ''
+      modules:
+        description: 'The modules to test.If empty, all modules are tested. (e.g. ["base", "linux-il2cpp", "windows-mono", "mac-mono", "ios", "android", "webgl"])'
+        required: false
+        default: '["base", "linux-il2cpp", "windows-mono", "mac-mono", "ios", "android", "webgl"]'
   push:
     branches:
       develop
@@ -32,6 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       versions: ${{ steps.setup.outputs.versions }}
+      modules: ${{ steps.setup.outputs.modules }}
     steps:
       ###########################
       #          Setup          #
@@ -54,6 +66,7 @@ jobs:
           context: .
           file: base/Dockerfile
           tags: unity3d_base:local
+          push: false
       - name: 🛠️ Build image (unity3d_hub:local)
         uses: docker/build-push-action@v6
         with:
@@ -61,6 +74,7 @@ jobs:
           file: hub/Dockerfile
           build-args: baseImage=unity3d_base:local
           tags: unity3d_hub:local
+          push: false
 
       ###########################
       #   Save images for next  #
@@ -82,13 +96,24 @@ jobs:
       - name: ⚙️ Setup build matrix
         id: setup
         run: |
-          LATEST_VERSIONS=`npx --yes unity-changeset list --versions --latest-patch --min ${MINIMUM_VERSION} --json --all`
-          # ADDITIONAL_VERSIONS=`npx unity-changeset list --versions --grep '0f' --min ${MINIMUM_VERSION} --json`
-          ADDITIONAL_VERSIONS=[]
+          echo "MINIMUM_VERSION=${MINIMUM_VERSION}" | tee -a $GITHUB_STEP_SUMMARY
+          echo "ADDITIONAL_VERSIONS=${ADDITIONAL_VERSIONS}" | tee -a $GITHUB_STEP_SUMMARY
+          echo "INPUT_VERSIONS="'${{ inputs.versions }}' | tee -a $GITHUB_STEP_SUMMARY
 
-          VERSIONS=`echo "[${LATEST_VERSIONS}, ${ADDITIONAL_VERSIONS}]" \
-            | jq -c '[ flatten | sort | unique | .[] | select( test("${{ env.EXCLUDE_FILTER }}") | not ) ]'`
-          echo "versions=${VERSIONS}" | tee $GITHUB_OUTPUT $GITHUB_STEP_SUMMARY
+          VERSIONS='${{ inputs.versions }}'
+          if [ -z "${VERSIONS}" ]; then
+            LATEST_VERSIONS=`npx --yes unity-changeset list --versions --latest-patch --min ${MINIMUM_VERSION} --json --all`
+            VERSIONS=`echo "[${LATEST_VERSIONS}, ${ADDITIONAL_VERSIONS}]" \
+              | jq -c '[ flatten | sort | unique | .[] | select( test("${{ env.EXCLUDE_FILTER }}") | not ) ]'`
+          fi
+
+          MODULES='${{ inputs.modules }}'
+          if [ -z "${MODULES}" ]; then
+            MODULES='["base", "linux-il2cpp", "windows-mono", "mac-mono", "ios", "android", "webgl"]'
+          fi
+
+          echo "versions=${VERSIONS}" | tee -a $GITHUB_OUTPUT $GITHUB_STEP_SUMMARY
+          echo "modules=${MODULES}" | tee -a $GITHUB_OUTPUT $GITHUB_STEP_SUMMARY
 
   ###########################
   #  Build editor and test  #
@@ -107,29 +132,7 @@ jobs:
       matrix:
         # The latest patch versions for each minor version.
         version: ${{ fromJson(needs.base-and-hub.outputs.versions) }}
-        module:
-          - base
-          - linux-il2cpp
-          - windows-mono
-          - mac-mono
-          - ios
-          - android
-          - webgl
-        include:
-          - module: base
-            platform: StandaloneLinux64
-          - module: linux-il2cpp
-            platform: StandaloneLinux64
-          - module: windows-mono
-            platform: StandaloneWindows
-          - module: mac-mono
-            platform: StandaloneOSX
-          - module: ios
-            platform: iOS
-          - module: android
-            platform: Android
-          - module: webgl
-            platform: WebGL
+        module: ${{ fromJson(needs.base-and-hub.outputs.modules) }}
 
     steps:
       ###########################
@@ -177,6 +180,19 @@ jobs:
         id: changeSet
         run: echo "value=`npx --yes unity-changeset ${{ matrix.version }}`" | tee $GITHUB_OUTPUT
 
+      - name: 🔍 Find target platform for ${{ matrix.module }}
+        id: targetPlatform
+        run: |
+          case ${{ matrix.module }} in
+            base|linux-il2cpp ) echo "value=StandaloneLinux64" | tee $GITHUB_OUTPUT;;
+            windows-mono )      echo "value=StandaloneWindows" | tee $GITHUB_OUTPUT;;
+            mac-mono )          echo "value=StandaloneOSX" | tee $GITHUB_OUTPUT;;
+            ios )               echo "value=iOS" | tee $GITHUB_OUTPUT;;
+            android )           echo "value=Android" | tee $GITHUB_OUTPUT;;
+            webgl )             echo "value=WebGL" | tee $GITHUB_OUTPUT;;
+            * )                 echo "value=StandaloneLinux64" | tee $GITHUB_OUTPUT;;
+          esac
+
       ###########################
       #       Build editor      #
       ###########################
@@ -196,6 +212,7 @@ jobs:
             changeSet=${{ steps.changeSet.outputs.value }}
             module=${{ matrix.module }}
           tags: unity3d:local
+          push: false
 
       ###########################
       #   Build editor (retry)  #
@@ -220,14 +237,15 @@ jobs:
             changeSet=${{ steps.changeSet.outputs.value }}
             module=${{ matrix.module }}
           tags: unity3d:local
+          push: false
 
       - name: 📥 Cache library
         uses: actions/cache@v4
         with:
           path: reference-project/Library
-          key: Library-${{ matrix.version }}-${{ matrix.platform }}-${{ github.sha }}
+          key: Library-${{ matrix.version }}-${{ matrix.module }}-${{ github.sha }}
           restore-keys: |
-            Library-${{ matrix.version }}-${{ matrix.platform }}-
+            Library-${{ matrix.version }}-${{ matrix.module }}-
             Library-${{ matrix.version }}-
             Library-
 
@@ -241,17 +259,15 @@ jobs:
           unityVersion: ${{ matrix.version }}
           customImage: unity3d:local
           projectPath: reference-project
-          customParameters: -nographics -buildTarget ${{ matrix.platform }}
+          customParameters: -nographics -buildTarget ${{ steps.targetPlatform.outputs.value }}
 
       ###########################
       # Validate Android Utils  #
       ###########################
       - name: 🔍 Validate Android Utils
         if: matrix.module == 'android'
-        uses: addnab/docker-run-action@v3
-        with:
-          image: unity3d:local
-          run: bash -l -c 'java -version && sdkmanager --version && sdkmanager --list'
+        run: |
+          docker run unity3d:local /bin/bash -c -l 'java -version && sdkmanager --version && sdkmanager --list'
 
       ###########################
       #          Build          #
@@ -268,7 +284,7 @@ jobs:
           unityVersion: ${{ matrix.version }}
           customImage: unity3d:local
           projectPath: reference-project
-          targetPlatform: ${{ matrix.platform }}
+          targetPlatform: ${{ steps.targetPlatform.outputs.value }}
           allowDirtyBuild: true
           customParameters: -nographics
 
@@ -288,7 +304,7 @@ jobs:
           unityVersion: ${{ matrix.version }}
           customImage: unity3d:local
           projectPath: reference-project
-          targetPlatform: ${{ matrix.platform }}
+          targetPlatform: ${{ steps.targetPlatform.outputs.value }}
           allowDirtyBuild: true
           customParameters: -nographics
 
@@ -308,6 +324,6 @@ jobs:
           unityVersion: ${{ matrix.version }}
           customImage: unity3d:local
           projectPath: reference-project
-          targetPlatform: ${{ matrix.platform }}
+          targetPlatform: ${{ steps.targetPlatform.outputs.value }}
           allowDirtyBuild: true
           customParameters: -nographics

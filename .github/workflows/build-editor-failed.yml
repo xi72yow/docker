@@ -1,6 +1,7 @@
 # Editor build failure reporter
 # ========================================================
 name: 🚨 Report Building Failure
+run-name: 🚨 Report Building Failure (${{ inputs.imageTag }})
 
 on:
   workflow_dispatch:
@@ -14,8 +15,6 @@ jobs:
   comment:
     name: 📝 Report '${{ inputs.imageTag }}'
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
     outputs:
       already-commented: ${{ steps.fc.outputs.comment-id != '' }}
     steps:
@@ -40,7 +39,7 @@ jobs:
           labels: failure report
 
       - name: 🔍 Find comment
-        uses: peter-evans/find-comment@v2
+        uses: peter-evans/find-comment@v3
         id: fc
         continue-on-error: true
         with:
@@ -50,8 +49,9 @@ jobs:
 
       - name: ✅ Create comment
         if: steps.fc.outputs.comment-id == ''
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v4
         with:
+          token: ${{ secrets.GH_TOKEN }}
           issue-number: ${{ steps.fi.outputs.issue-number }}${{ steps.ci.outputs.number }}
           body: |
             The build '${{ inputs.imageTag }}' failed.
@@ -62,8 +62,6 @@ jobs:
     needs: comment
     if: needs.comment.outputs.already-commented == 'true'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: 🚚 Checkout
         uses: actions/checkout@v4
