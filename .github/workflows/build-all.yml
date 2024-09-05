@@ -230,5 +230,5 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: build-editor.yml
-          inputs: '{ "versions": ${{ steps.setup.outputs.versions }}, "module": "${{ matrix.module }}", "tag": "${{ env.tag }}" }'
+          inputs: '{ "versions": ${{ steps.setup.outputs.versions }}, "module": "${{ matrix.module }}", "tag": "${{ env.tag }}", "push": "true" }'
           ref: ${{ github.ref }}

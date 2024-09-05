@@ -30,6 +30,10 @@ on:
         description: "Release tag"
         required: true
         default: "v1.0.0"
+      push:
+        description: "Push image to registry"
+        required: true
+        default: "true"
 
 jobs:
   build:
@@ -55,7 +59,18 @@ jobs:
       ###########################
       #          Setup          #
       ###########################
-      - name: 🧹 Free disk space
+      - name: 🧹 Free disk space (Phase 1)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: 🧹 Free disk space (Phase 2)
         run: .github/workflows/scripts/free_disk_space.sh
 
       - name: 🔍 Find changeSet for ${{ matrix.version }}
@@ -121,7 +136,7 @@ jobs:
             module=${{ inputs.module }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
-          push: true
+          push: ${{ inputs.push }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
 
@@ -148,7 +163,7 @@ jobs:
             module=${{ inputs.module }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
-          push: true
+          push: ${{ inputs.push }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
 
