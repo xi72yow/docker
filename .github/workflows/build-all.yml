@@ -191,7 +191,7 @@ jobs:
       - name: ⚙️ Get available Unity versions
         run: |
           MIN_VERSION=`cat .minimumUnityVersion`
-          npx --yes unity-changeset list --versions --min $MIN_VERSION --all | tee .availableUnityVersions
+          npx --yes unity-changeset@latest list --versions --min $MIN_VERSION --all | tee .availableUnityVersions
 
       - name: ⚙️ Find exist tags
         run: |
