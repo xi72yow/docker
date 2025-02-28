@@ -6,9 +6,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: reference-project
 
     steps:
       - name: Checkout repository
@@ -20,5 +17,7 @@ jobs:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+
         with:
           targetPlatform: WebGL
+          projectPath: ./reference-project
