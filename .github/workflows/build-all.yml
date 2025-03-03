@@ -31,8 +31,8 @@ on:
   issue_comment:
     types: [created]
   workflow_dispatch:
-  schedule:
-    - cron: "0 0 * * *" # daily
+  #schedule:
+    #- cron: "0 0 * * *" # daily
 
 jobs:
   build:
