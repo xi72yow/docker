@@ -31,8 +31,6 @@ on:
       - "**/Dockerfile"
       - ".github/workflows/test.yml"
       - "reference-project/**"
-  schedule:
-    - cron: "0 0 * * 0" # weekly
 
 jobs:
   ###########################
